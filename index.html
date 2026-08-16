@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>guess.py — number guessing game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #081412;
+    --panel: #0c1c19;
+    --panel-2: #0f231f;
+    --line: rgba(111,255,176,0.14);
+    --line-strong: rgba(111,255,176,0.32);
+    --phosphor: #7CFFC4;
+    --phosphor-dim: #4FA783;
+    --amber: #FFB454;
+    --cyan: #6FE3FF;
+    --text-soft: #B9D9CC;
+    --text-faint: #5C7A70;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(124,255,196,0.08), transparent 60%),
+      var(--bg);
+    color: var(--text-soft);
+    font-family: 'JetBrains Mono', monospace;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 6vh 20px 8vh;
+  }
+  .brand{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:13px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color: var(--phosphor-dim);
+    margin-bottom: 28px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .brand::before, .brand::after{
+    content:"";
+    width:26px;
+    height:1px;
+    background: var(--line-strong);
+  }
+  .terminal{
+    width:100%;
+    max-width:640px;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border:1px solid var(--line-strong);
+    border-radius:10px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 30px 60px -20px rgba(0,0,0,0.6), 0 0 60px -20px rgba(124,255,196,0.15);
+    overflow:hidden;
+  }
+  .titlebar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+    background: rgba(0,0,0,0.15);
+  }
+  .dot{width:10px;height:10px;border-radius:50%;}
+  .dot.r{background:#FF6159;}
+  .dot.y{background:#FFBD2E;}
+  .dot.g{background:#28C940;}
+  .filename{
+    margin-left:8px;
+    font-size:12.5px;
+    color: var(--text-faint);
+  }
+  .screen{
+    padding: 22px 22px 16px;
+    min-height: 340px;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* ---- start screen ---- */
+  #startScreen{ align-items:stretch; justify-content:center; text-align:center; }
+  .title-big{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:28px;
+    font-weight:600;
+    color:#E7F6EF;
+    margin: 6px 0 10px;
+  }
+  .title-sub{
+    font-size:13px;
+    color: var(--text-faint);
+    line-height:1.7;
+    margin: 0 0 26px;
+  }
+  .rules{
+    text-align:left;
+    background: rgba(0,0,0,0.18);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:16px 18px;
+    margin: 0 0 26px;
+    font-size:13px;
+    line-height:2;
+    color: var(--text-soft);
+  }
+  .rules span{ color: var(--phosphor); }
+  .rounds-badge{
+    display:inline-block;
+    font-size:12px;
+    color: var(--phosphor-dim);
+    border:1px solid var(--line-strong);
+    border-radius:20px;
+    padding:5px 14px;
+    margin-bottom:26px;
+    letter-spacing:0.05em;
+  }
+
+  /* ---- play screen ---- */
+  .roundbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  .round-dots{ display:flex; gap:6px; }
+  .rdot{
+    width:8px;height:8px;border-radius:50%;
+    background: var(--line-strong);
+  }
+  .rdot.done{ background: var(--phosphor); }
+  .rdot.current{ background: var(--amber); }
+  .round-label{ font-size:11.5px; color: var(--text-faint); letter-spacing:0.05em; }
+
+  .banner{
+    color: var(--phosphor);
+    font-size:14px;
+    line-height:1.75;
+    margin:0 0 4px;
+  }
+  .banner .dim{color: var(--text-faint);}
+  .log{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    margin: 14px 0;
+    min-height: 40px;
+  }
+  .log-line{
+    font-size:14px;
+    line-height:1.6;
+    opacity:0;
+    animation: appear 0.25s ease forwards;
+  }
+  @keyframes appear{ to{ opacity:1; } }
+  .log-line .prompt{ color: var(--text-faint); }
+  .log-line .val{ color: #E7F6EF; }
+  .log-line.hi{ color: var(--amber); }
+  .log-line.lo{ color: var(--cyan); }
+  .log-line.win{ color: var(--phosphor); font-weight:700; }
+  .log-line.err{ color: #FF8C7A; }
+
+  .inputrow{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    border-top:1px solid var(--line);
+    padding-top:14px;
+    margin-top:auto;
+  }
+  .prompt-tag{
+    color: var(--phosphor);
+    font-size:14px;
+    white-space:nowrap;
+  }
+  input[type="number"]{
+    flex:1;
+    background:transparent;
+    border:none;
+    outline:none;
+    color: #E7F6EF;
+    font-family:'JetBrains Mono', monospace;
+    font-size:15px;
+    caret-color: var(--phosphor);
+    min-width:0;
+  }
+  input[type="number"]::placeholder{ color: var(--text-faint); }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+  .cursor{
+    width:8px;height:16px;
+    background: var(--phosphor);
+    animation: blink 1s step-end infinite;
+    flex-shrink:0;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .controls{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding: 12px 22px 18px;
+    border-top:1px solid var(--line);
+    background: rgba(0,0,0,0.12);
+  }
+  .stat{
+    font-size:12px;
+    color: var(--text-faint);
+    letter-spacing:0.04em;
+  }
+  .stat b{ color: var(--text-soft); font-weight:500; }
+  .stat.range-lo b{ color: var(--cyan); }
+  .stat.range-hi b{ color: var(--amber); }
+
+  button{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    background: transparent;
+    color: var(--phosphor);
+    border:1px solid var(--line-strong);
+    padding:8px 16px;
+    border-radius:6px;
+    cursor:pointer;
+    transition: all 0.15s ease;
+  }
+  button:hover{ background: rgba(124,255,196,0.08); border-color: var(--phosphor); }
+  button:active{ transform: scale(0.97); }
+  button.run{ color:#0B1210; background: var(--phosphor); border-color: var(--phosphor); font-weight:700; }
+  button.run:hover{ background:#9CFFD4; }
+  button.run:disabled{ opacity:0.35; cursor:default; }
+  button.wide{ width:100%; padding:12px; font-size:14px; }
+
+  /* ---- results screen ---- */
+  #resultScreen{ display:none; text-align:center; justify-content:center; }
+  .result-title{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:22px;
+    font-weight:600;
+    color:#E7F6EF;
+    margin: 4px 0 20px;
+  }
+  .result-rows{
+    text-align:left;
+    background: rgba(0,0,0,0.18);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding: 14px 18px;
+    margin-bottom:20px;
+    font-size:13.5px;
+  }
+  .result-row{
+    display:flex;
+    justify-content:space-between;
+    padding:7px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .result-row:last-child{ border-bottom:none; }
+  .result-row b{ color: var(--phosphor); font-weight:500; }
+  .result-total{
+    font-size:14px;
+    color: var(--text-soft);
+    margin-bottom:24px;
+  }
+  .result-total b{ color: #E7F6EF; font-size:18px; }
+
+  .hint{
+    text-align:center;
+    font-size:11.5px;
+    color: var(--text-faint);
+    margin-top:22px;
+    max-width:480px;
+    line-height:1.7;
+  }
+
+  @media (max-width: 480px){
+    .screen{ padding:18px 16px 14px; min-height:300px; }
+    .controls{ padding:12px 16px 16px; flex-direction:column; gap:10px; align-items:stretch; }
+    .stat{ text-align:center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="brand">guess.py</div>
+
+<div class="terminal">
+  <div class="titlebar">
+    <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span class="filename">python3 guess.py</span>
+  </div>
+
+  <!-- START SCREEN -->
+  <div class="screen" id="startScreen">
+    <div class="title-big">guess the number</div>
+    <p class="title-sub">a number guessing game, three rounds, fewest attempts wins</p>
+    <div class="rules">
+      <div>range each round: <span>1 – 100</span></div>
+      <div>rounds to play: <span>3</span></div>
+      <div>after each guess: <span>too high / too low</span> hint</div>
+      <div>goal: <span>lowest total attempts</span></div>
+    </div>
+    <button class="run wide" id="startBtn">start game</button>
+  </div>
+
+  <!-- PLAY SCREEN -->
+  <div class="screen" id="playScreen" style="display:none;">
+    <div class="roundbar">
+      <span class="round-label">round <b id="roundNum">1</b> of 3</span>
+      <div class="round-dots" id="roundDots"></div>
+    </div>
+
+    <p class="banner">
+      &gt;&gt;&gt; secret = random.randint(1, 100)<br>
+      <span class="dim"># I've picked a number. Can you find it?</span>
+    </p>
+
+    <div class="log" id="log"></div>
+
+    <div class="inputrow">
+      <span class="prompt-tag" id="promptTag">guess&gt;</span>
+      <input type="number" id="guessInput" placeholder="type a number, hit enter" autocomplete="off" min="1" max="100">
+      <div class="cursor" id="cursor"></div>
+    </div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div class="screen" id="resultScreen">
+    <div class="result-title" id="resultTitle">game over</div>
+    <div class="result-rows" id="resultRows"></div>
+    <div class="result-total">total attempts: <b id="totalAttempts">0</b></div>
+    <button class="run wide" id="playAgainBtn">play again</button>
+  </div>
+
+  <!-- PLAY-SCREEN CONTROLS -->
+  <div class="controls" id="playControls" style="display:none;">
+    <div style="display:flex; gap:16px;">
+      <span class="stat">attempts <b id="attempts">0</b></span>
+      <span class="stat range-lo">low <b id="lo">1</b></span>
+      <span class="stat range-hi">high <b id="hi">100</b></span>
+    </div>
+    <button class="run" id="actionBtn">guess</button>
+  </div>
+</div>
+
+<p class="hint" id="footerHint">Range narrows as you play — try the midpoint first.</p>
+
+<script>
+  const TOTAL_ROUNDS = 3;
+  let round = 1;
+  let secret, attempts, lo, hi, won;
+  let roundResults = [];
+
+  const startScreen = document.getElementById('startScreen');
+  const playScreen = document.getElementById('playScreen');
+  const resultScreen = document.getElementById('resultScreen');
+  const playControls = document.getElementById('playControls');
+  const footerHint = document.getElementById('footerHint');
+
+  const startBtn = document.getElementById('startBtn');
+  const playAgainBtn = document.getElementById('playAgainBtn');
+  const log = document.getElementById('log');
+  const input = document.getElementById('guessInput');
+  const btn = document.getElementById('actionBtn');
+  const attemptsEl = document.getElementById('attempts');
+  const loEl = document.getElementById('lo');
+  const hiEl = document.getElementById('hi');
+  const promptTag = document.getElementById('promptTag');
+  const roundNumEl = document.getElementById('roundNum');
+  const roundDots = document.getElementById('roundDots');
+
+  function buildDots(){
+    roundDots.innerHTML = '';
+    for(let i = 1; i <= TOTAL_ROUNDS; i++){
+      const d = document.createElement('div');
+      d.className = 'rdot' + (i < round ? ' done' : (i === round ? ' current' : ''));
+      roundDots.appendChild(d);
+    }
+  }
+
+  function startRound(){
+    secret = Math.floor(Math.random() * 100) + 1;
+    attempts = 0;
+    lo = 1; hi = 100;
+    won = false;
+    log.innerHTML = '';
+    input.disabled = false;
+    input.value = '';
+    btn.textContent = 'guess';
+    btn.disabled = false;
+    promptTag.style.color = 'var(--phosphor)';
+    attemptsEl.textContent = 0;
+    loEl.textContent = 1;
+    hiEl.textContent = 100;
+    roundNumEl.textContent = round;
+    footerHint.textContent = 'try the midpoint first.';
+    buildDots();
+    input.focus();
+  }
+
+  function addLine(html, cls){
+    const line = document.createElement('div');
+    line.className = 'log-line' + (cls ? ' ' + cls : '');
+    line.innerHTML = html;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function submit(){
+    if (won) return;
+    const raw = input.value.trim();
+    if (raw === '' || isNaN(raw) || raw < 1 || raw > 100){
+      addLine('<span class="prompt">&gt;&gt;&gt;</span> <span class="val">' + (raw || ' ') + '</span>', 'err');
+      addLine('ValueError: enter a whole number from 1 to 100');
+      input.value = '';
+      return;
+    }
+    const guess = parseInt(raw, 10);
+    attempts += 1;
+    attemptsEl.textContent = attempts;
+
+    addLine('<span class="prompt">&gt;&gt;&gt;</span> <span class="val">' + guess + '</span>');
+
+    if (guess > secret){
+      hi = Math.min(hi, guess - 1);
+      hiEl.textContent = hi;
+      addLine('too high — try lower', 'hi');
+      footerHint.textContent = 'narrow it down between ' + lo + ' and ' + hi + '.';
+    } else if (guess < secret){
+      lo = Math.max(lo, guess + 1);
+      loEl.textContent = lo;
+      addLine('too low — try higher', 'lo');
+      footerHint.textContent = 'narrow it down between ' + lo + ' and ' + hi + '.';
+    } else {
+      addLine('correct! found in ' + attempts + (attempts === 1 ? ' attempt' : ' attempts'), 'win');
+      won = true;
+      input.disabled = true;
+      promptTag.style.color = 'var(--text-faint)';
+      roundResults.push(attempts);
+
+      if (round < TOTAL_ROUNDS){
+        btn.textContent = 'next round';
+        footerHint.innerHTML = 'nice work. hit <b style="color:var(--phosphor)">next round</b> to continue.';
+      } else {
+        btn.textContent = 'see results';
+        footerHint.innerHTML = 'final round done. hit <b style="color:var(--phosphor)">see results</b>.';
+      }
+    }
+    input.value = '';
+    if (!won) input.focus();
+  }
+
+  function showResults(){
+    playScreen.style.display = 'none';
+    playControls.style.display = 'none';
+    footerHint.style.display = 'none';
+    resultScreen.style.display = 'flex';
+    resultScreen.style.flexDirection = 'column';
+
+    const rows = document.getElementById('resultRows');
+    rows.innerHTML = '';
+    let total = 0;
+    roundResults.forEach((a, i) => {
+      total += a;
+      const row = document.createElement('div');
+      row.className = 'result-row';
+      row.innerHTML = '<span>round ' + (i + 1) + '</span><b>' + a + (a === 1 ? ' attempt' : ' attempts') + '</b>';
+      rows.appendChild(row);
+    });
+    document.getElementById('totalAttempts').textContent = total;
+
+    const title = document.getElementById('resultTitle');
+    if (total <= TOTAL_ROUNDS * 4) title.textContent = 'excellent — sharp guessing';
+    else if (total <= TOTAL_ROUNDS * 7) title.textContent = 'nice run';
+    else title.textContent = 'game over';
+  }
+
+  btn.addEventListener('click', () => {
+    if (!won){ submit(); return; }
+    if (round < TOTAL_ROUNDS){
+      round += 1;
+      startRound();
+    } else {
+      showResults();
+    }
+  });
+
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+
+  startBtn.addEventListener('click', () => {
+    startScreen.style.display = 'none';
+    playScreen.style.display = 'flex';
+    playControls.style.display = 'flex';
+    round = 1;
+    roundResults = [];
+    startRound();
+  });
+
+  playAgainBtn.addEventListener('click', () => {
+    resultScreen.style.display = 'none';
+    footerHint.style.display = 'block';
+    playScreen.style.display = 'flex';
+    playControls.style.display = 'flex';
+    round = 1;
+    roundResults = [];
+    startRound();
+  });
+</script>
+
+</body>
+</html>
